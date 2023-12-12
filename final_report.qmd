@@ -1,0 +1,376 @@
+---
+title: "Most Streamed Spotify Songs"
+subtitle: "Which elements contribute most to song popularity?"
+author: "Ciara Trigg"
+institute: "University of Scranton"
+theme: "pulse"
+format: 
+  html:
+    code-fold: true
+    echo: true
+    toc: true
+    toc-location: left
+    self-contained: true
+---
+```{r}
+#| echo: false
+#| include: false
+library(tidyverse)
+library(dplyr)
+library(tidymodels)
+library(usemodels)
+library(xgboost)
+library(textrecipes)
+library(knitr)
+library(vip)
+library(ggthemes)
+
+theme_set(theme_minimal(base_size = 13))
+
+tidymodels_prefer()
+```
+
+
+## Executive Summary
+In this project, we explore which factors most significantly contribute to a song's popularity on Spotify. We take as a case study the Most Streamed Spotify Songs of 2023 and their quantitative and qualitative characteristics. Some of these features include beats per minute, danceability, energy, number of artists, and highest position on the Spotify charts. Through the use of predictive models, we find the audio feature which most significantly impacts the prediction of the number of streams is acousticness. Further, using wordpiece tokenization we implement a classification model that determines whether an artist will be above or below "top 10" in the charts based on their name. 
+
+## Background
+[The data used in this project](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023) was originally sourced by Kaggle user [Nidula Elgiriyewithana](https://www.kaggle.com/nelgiriyewithana) from the [Spotify API](https://developer.spotify.com/documentation/web-api/reference/get-multiple-artists). The Spotify API is provided by Spotify as a tool for developers to access and interact with their music library. This specific data set provides insights into each song's popularity and various audio features. Although this data set does contain streaming statistics for Apple Music, Deezer, and Shazam as well, this project will focus on the streaming data from Spotify only. 
+
+### Initial Research Question
+We would like to know which audio features, if any, impact the amount of streams a song may receive. Different song qualities make them more of less appropriate for certain occasions, but, in a general sense, do the qualities of a song affect the number of streams it will receive overall? Further, we will examine whether or not a song will be in the top 10 based on the artists' name. 
+
+## Data Collection and Documentation
+The data was downloaded from Kaggle in the form of a csv file, and read using the `read.csv` function in R. For further exploration, the Spotify API, where this data was sourced from, can be accessed [here](https://developer.spotify.com/documentation/web-api/reference/get-multiple-artists). 
+
+```{r}
+#| warning: false
+# Load the data
+music_df <- read.csv("../semester_project_trigg/data/spotify-2023.csv")
+
+# Omit missing values, scale streams
+music_df <- music_df[!(music_df$key == ""), ]
+music_df <- music_df[!(music_df$in_shazam_charts == ""), ]
+music_df <- music_df %>% mutate(streams = log10(as.numeric(streams)))
+music_df <- na.omit(music_df)
+
+music_df %>% head(5) %>%
+  kable()
+```
+## Exploratory Analysis and Observations
+### Variable Relationships
+```{r}
+music_df %>%
+  ggplot(aes(x=streams, y=danceability_., color=released_year)) +
+  geom_point() +
+  ggtitle("Suitability for Dancing vs. Streams on Spotify") +
+  labs(x = "# Spotify Streams (in millions)", y="Percentage of Dancing suitability")
+```
+From this graph, there appears to be little correlation between a song's suitability for dancing and the number of streams it receives. Initially, I assumed that the most danceable songs would have the highest number of streams, but upon revaluation I think the lack of correlation is appropriate. This is because danceable music is not appropriate for all situations and therefore it does not seem necessary that the two variables would be directly related.
+
+```{r}
+music_df %>%
+  ggplot(aes(x=streams, y=energy_., color=released_year)) +
+  geom_point() +
+  ggtitle("Perceived energy level vs. Streams on Spotify") +
+  labs(x = "# Streams on Spotify (in millions)", y="Perceived energy level")
+```
+Similarly, there is not a distinct trend between energy level of a song and the number of streams it receives.
+
+```{r}
+music_df %>%
+  ggplot(aes(x=bpm, y=danceability_., color=released_year)) +
+  geom_point() +
+  ggtitle("Suitability for Dancing vs. Beats per Minute") +
+  labs(x = "BPM", y="Percentage of Dancing suitability") 
+```
+When relating beats per minute and suitability for dancing, this plot shows that songs between 100-150 beats per minute have the highest danceability factor.
+
+```{r}
+music_df %>%
+  ggplot(aes(x=energy_., y=danceability_., color=mode)) +
+  geom_point() +
+  ggtitle("Suitability for Dancing vs. Perceived energy level") +
+  labs(x = "Perceived energy Level", y="Percentage of Dancing suitability")
+```
+Further, songs that have a higher perceived energy level tend to be more danceable. This is an expected trend as higher energy songs tend to be the ones that people dance to most frequently.
+
+```{r}
+music_df %>%
+  ggplot(aes(x=acousticness_., y=danceability_., color=released_year)) +
+  geom_point() +
+  ggtitle("Suitability for Dancing vs. Amount of Acoustic Sound") +
+  labs(x = "Amt of Acoustic Sound", y="Percentage of Dancing suitability")
+```
+When acoustic sound is compared with dancing suitability, they show a slight inverse relationship, but nothing significant. This slight downward trend is expected though, since acoustic songs are usually less upbeat and therefore not as danceable.
+
+```{r}
+music_df %>%
+  ggplot(aes(x=energy_., y=bpm, color=released_year)) +
+  geom_point() +
+  ggtitle("BPM vs. Energy") +
+  labs(x = "Perceived Energy", y="BPM")
+```
+This graph shows a slight direct relationship between beats per minute and perceived energy. However, I expected the correlation to be stronger.
+
+
+```{r}
+music_df %>%
+  ggplot(aes(x = mode, fill = key)) +
+  geom_bar()
+```
+This graph shows that more songs were written in the a Major mode than in a Minor mode. Additionally, the coloring shows a breakdown of which keys were used in the major and minor modes. These colored sectors are difficult to compare directly because Major mode has a larger number of data points, but visually it appears that the middle of the key scale was used more frequently in songs in minor mode. On the other hand, songs written in major mode use the upper and lower extremities of the key scale most frequently.
+
+```{r}
+music_df %>%
+  ggplot(aes(x = key, fill = mode)) +
+  geom_bar()
+```
+This graph conveys similar information to that found in the previous graph, but it is interesting to view the same data from a different perspective.
+
+## Models
+### Regression Models
+For this investigation, we will use both regression and classification modeling for different purposes. The various regression models will make predictions about the number of streams a song will receive based on the number of artists, the number of Spotify playlists it is in, the highest it has reached on Spotify's charts, the beats per minute, the key, the mode, the danceability, the valence, the energy, the acousticness, the liveness, and the speechiness. To accomplish this, we have used a wide variety of regression techniques namely a linear regression, a K nearest neighbors, a random forest, and a boosted tree. 
+
+To perform our modeling, lets first split our data into training and tests splits and create some cross validation folds: 
+```{r}
+#| code-fold: show
+# Create splits
+set.seed(123)
+music_split <- initial_split(music_df, prop = 0.80, strata = streams)
+music_train <- training(music_split)
+music_test <- testing(music_split)
+
+music_folds <- vfold_cv(music_train, strata = streams)
+```
+
+To prepare our data for modeling, let's also take some preprocessing steps. 
+```{r}
+#| code-fold: show
+#| output: false
+# Create a recipe
+music_rec <- recipe(streams ~ artist_count + in_spotify_playlists + in_spotify_charts + bpm + key + mode + danceability_. + valence_. + energy_. + acousticness_. + liveness_. + speechiness_., data = music_df) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_numeric_predictors()) %>%
+  step_naomit()
+
+music_rec <- prep(music_rec, training = music_train)
+music_rec
+```
+
+
+Then, we need to create our model specifications: 
+```{r}
+#| code-fold: show
+# Model Specifications
+
+# Linear Regression
+lr_spec <- linear_reg() %>% set_engine("lm")
+
+# Nearest Neighbors
+knn_spec <- nearest_neighbor(neighbors = tune()) %>% 
+  set_mode("regression") %>%
+  set_engine("kknn")
+
+# Random Forest
+rf_spec <- 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 10) %>%
+  set_mode("regression") %>%
+  set_engine("randomForest")
+
+# Boosted Tree
+boost_spec <- boost_tree(
+  trees = 10,
+  tree_depth = tune(), min_n = tune(),
+  loss_reduction = tune(),
+  sample_size = tune(), mtry = tune(),
+  learn_rate = tune()
+) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+```
+
+
+Now, let's compare our models using a workflow set:
+```{r}
+#| code-fold: show
+#| output: false
+music_models <-
+  workflow_set(
+    preproc = list(music_recipe = music_rec),
+    models = list(lr = lr_spec,
+                  knn = knn_spec,
+                  rf = rf_spec,
+                  boost = boost_spec),
+    cross = TRUE
+  )
+
+music_modeling <-
+  music_models %>%
+  workflow_map(
+    resamples = music_folds,
+    metrics = metric_set(rmse),
+    seed = 3,
+    verbose = TRUE
+  )
+```
+Let's see how our models did:
+```{r}
+results <- rank_results(music_modeling) %>% head(15) %>%
+  kable()
+results
+```
+#### Results
+The random forest model is performing the best, so we will fit that as our final model. 
+```{r}
+#| code-fold: show
+#| output: false
+extract_workflow_set_result(music_modeling, "music_recipe_rf") %>%
+  unnest(.metrics) %>%
+  glimpse()
+
+rf_workflow <- music_modeling %>%
+  extract_workflow("music_recipe_rf")
+
+rf_workflow_fit <-
+  rf_workflow %>% 
+  finalize_workflow(tibble(mtry = 8, min_n = 25))
+
+rf_fit <- last_fit(rf_workflow_fit, music_split)
+```
+
+```{r}
+collect_metrics(rf_fit) %>%
+  kable()
+```
+
+In our final random forest model, we ended with a RMSE value of approximately 0.44 and an RSQ value of approximately 0.43. These values indicate that this model's predictions deviate from the actual values by approximately 0.44 and that about 43% of the variability in the dependent variable can be explained by the independent variables. 
+
+Finally, let's examine which predictors contribute most to our model's prediction:
+```{r}
+extract_workflow(rf_fit) %>%
+  extract_fit_parsnip() %>%
+  vip()
+```
+Based on this visualization, the number of Spotify playlists contributed most significantly to the model prediction by a large margin. The audio features which most significantly contribute are acousticness (amount of acoustic sound in the song) and valence (positivity of the song's musical content). 
+
+Since we know which variables affect the number of streams the most, let's see how they are correlated. 
+```{r}
+#| echo: false
+cat("Correlations:\n")
+cat("# of Spotify Playlists and # of Streams: \n")
+cat(cor(music_df$in_spotify_playlists, music_df$streams))
+cat("\nAmount of Acoustic Sound and # of Streams: \n")
+cat(cor(music_df$acousticness_., music_df$streams))
+cat("\nPositivity of Musical Content and # of Streams: \n")
+cat(cor(music_df$valence_., music_df$streams))
+```
+As shown above, # of Spotify Playlists and # of Streams have a positive correlation, indicating that the more playlists a song is in, the higher the number of streams will be. On the other hand, the Amount of Acoustic Sound and Positivity of Musical Content have an inverse relationship with # of Streams meaning the lower each other those values, the higher the number of streams will be. 
+
+### Classification Model
+The goal of this classification model is to predict whether or not a song will be in the Top 10 on the Spotify charts based on the Artist's name. We will accomplish this task using wordpiece tokenization and a Linear SVM. 
+
+First, let's determine which artists have appeared on the charts the most often. 
+```{r}
+#| code-fold: show
+music_df %>%
+  group_by(artist.s._name) %>%
+  summarise(
+    n = n(),
+    in_spotify_charts = median(in_spotify_charts)
+  ) %>%
+  arrange(-n)
+```
+Taylor Swift, SZA, and Bad Bunny are the top 3 artists with the most appearances on the Spotify charts in 2023. 
+
+Now, we will split our data, transforming the numerical "in_spotify_charts" variable to a binary categorical variable with the values "Top 10" and "Below". 
+```{r}
+#| code-fold: show
+set.seed(123)
+class_split <-
+  music_df %>%
+  transmute(
+    artist.s._name,
+    in_spotify_charts = if_else(in_spotify_charts < 10, "Top 10", "Below")
+  ) %>%
+  na.omit() %>%
+  initial_split(strata = in_spotify_charts)
+
+class_train <- training(class_split)
+class_test <- testing(class_split)
+
+set.seed(234)
+class_folds <- vfold_cv(class_train, strata = in_spotify_charts)
+```
+
+Then, we can create our Linear SVM model, and apply wordpiece tokenization to the artists' names. 
+```{r}
+#| code-fold: show
+# Linear SVM
+svm_spec <- svm_linear(mode = "classification")
+
+class_rec <-
+recipe(in_spotify_charts ~ artist.s._name, data = music_train) %>%
+  step_tokenize(artist.s._name) %>%
+  step_tf(artist.s._name) %>%
+  step_normalize(all_numeric_predictors())
+
+svm_wf <- workflow(class_rec, svm_spec)
+
+doParallel::registerDoParallel()
+
+set.seed(123)
+svm_metrics <- metric_set(accuracy, sens, spec)
+
+svm_rs <- fit_resamples(svm_wf, resamples = class_folds, metrics = svm_metrics)
+
+final_svm <- last_fit(svm_wf, class_split, metrics = svm_metrics)
+```
+
+#### Results
+Let's see how we did: 
+```{r}
+collect_metrics(final_svm) %>%
+  kable()
+```
+Our model has an accuracy, sensitivity and specificity rates of approximately 67%, 45%, and 79%, respectively.
+
+Below is the corresponding confusion matrix, which demonstrates that our model does a better job of correctly predicting songs that will be in the top 10 than songs that will not be, but does a generally good job overall. 
+```{r}
+collect_predictions(final_svm) %>%
+  conf_mat(in_spotify_charts, .pred_class) %>%
+  autoplot()
+```
+Finally, lets take a look at which parts of artists' names have the greatest impact on classification. 
+```{r}
+final_fited <- extract_workflow(final_svm)
+
+tidy(final_fited) %>%
+  slice_max(abs(estimate), n = 20) %>%
+  kable()
+```
+From this, we can determine that if the artist's name contains "Boomin" or "Metro," the song is more likely to be predicted to be in the top 10, whereas if the artist's name contains "Anitta," that song is less likely to be predicted in the top 10, and so on. 
+
+## Conclusions
+In this report, we have analyzed the relationships between the number of streams a song will receive and its various characteristics. From this investigation we found that the number of Spotify playlists a song is in has the greatest overall impact on the number of streams it will receive. This aligns with what we would expect to be this case. If a song is in a high number of playlists, it follows that the song would be played more often and vice versa. In regard to the auditory characteristics of the song, the acousticness and valence had the greatest impact on the number of streams. If there is a lower acousticness, there will be more streams. Similarly, if there is lower valence, there will be a higher number of streams. 
+
+Although these predictors have the greatest impact on predicting streams, there are also many other factors that result in song popularity such as marketing tactics, having a pre-established fanbase, music trends, etc. Because of this, it is not necessarily the case that having a song with lower acousticness or valence will automatically result in a more popular song. However, at least during 2023, songs with these qualities received the most streams, so it is possible that a similar song would also be well received. 
+
+The implementation of the classification model provided insights into which artists were most popular in 2023, and how the artists that contribute to a song might affect the song's popularity. For example, we were able to determine that artists like Metro Boomin, Bizarrap, and Eminem, have a higher likelihood of being in the top 10 than Future or Halsey. Again, there are a lot of factors that go into a song's popularity so it is not guaranteed that these artists' songs will have the best performance every time. However, this information could be used to devise collaborations between artists. 
+
+## References
+Elgiriyewithana, Nidula. "Most Streamed Spotify Songs 2023." Kaggle, Kaggle, [https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023](https://www.kaggle.com/datasets/nelgiriyewithana/top-spotify-songs-2023). 
+
+
+Silge, Julia. "Evaluating multiple modeling approaches for #TidyTuesday spam email." JuliaSilge, Julia Silge, 1 Sept. 2023, [https://juliasilge.com/blog/spam-email/](https://juliasilge.com/blog/spam-email/).
+
+
+Silge, Julia. "Predict #TidyTuesday NYT bestsellers" JuliaSilge, Julia Silge, 11 May 2022, [https://juliasilge.com/blog/nyt-bestsellers/](https://juliasilge.com/blog/nyt-bestsellers/).
+
+
+
+
+
+
+
+
