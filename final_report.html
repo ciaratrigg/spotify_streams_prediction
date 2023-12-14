@@ -3913,7 +3913,7 @@ Positivity of Musical Content and # of Streams: </code></pre>
 </div>
 </div>
 <p>Our model has an accuracy, sensitivity and specificity rates of approximately 67%, 45%, and 79%, respectively.</p>
-<p>Below is the corresponding confusion matrix, which demonstrates that our model does a better job of correctly predicting songs that will be in the top 10 than songs that will not be, but does a generally good job overall.</p>
+<p>Below is the corresponding confusion matrix. The main diagonal of a confusion matrix represents correctly predicted samples. The visualization shows that, more often than not, our model is able to correctly classify songs as having been in the top 10. As shown by the left side of the matrix, our model has a more difficult time correctly classifying songs that lie outside of the top 10, but generally performs well overall.</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -4028,15 +4028,15 @@ Positivity of Musical Content and # of Streams: </code></pre>
 </table>
 </div>
 </div>
-<p>From this, we can determine that if the artist’s name contains “Boomin” or “Metro,” the song is more likely to be predicted to be in the top 10, whereas if the artist’s name contains “Anitta,” that song is less likely to be predicted in the top 10, and so on.</p>
+<p>A positive estimate value indicates an increased likelihood that the artist will be in the top 10 and a negative value suggests the opposite. From this, we can determine that if the artist’s name contains “Boomin” or “Metro,” the song is more likely to be predicted to be in the top 10, whereas if the artist’s name contains “Anitta,” that song is less likely to be predicted in the top 10, and so on.</p>
 </section>
 </section>
 </section>
 <section id="conclusions" class="level2">
 <h2 class="anchored" data-anchor-id="conclusions">Conclusions</h2>
-<p>In this report, we have analyzed the relationships between the number of streams a song will receive and its various characteristics. From this investigation we found that the number of Spotify playlists a song is in has the greatest overall impact on the number of streams it will receive. This aligns with what we would expect to be this case. If a song is in a high number of playlists, it follows that the song would be played more often and vice versa. In regard to the auditory characteristics of the song, the acousticness and valence had the greatest impact on the number of streams. If there is a lower acousticness, there will be more streams. Similarly, if there is lower valence, there will be a higher number of streams.</p>
+<p>In this report, we have analyzed the relationships between the number of streams a song will receive and its various characteristics. From this investigation we found that the number of Spotify playlists a song is in has the greatest overall impact on the number of streams it will receive. This aligns with what we would expect to be this case. If a song is in a high number of playlists, it follows that the song would be played more often and vice versa. Regarding the auditory characteristics of the song, the acousticness and valence had the greatest impact on the number of streams. If there is a lower acousticness, there will be more streams. Similarly, if there is lower valence, there will be a higher number of streams.</p>
 <p>Although these predictors have the greatest impact on predicting streams, there are also many other factors that result in song popularity such as marketing tactics, having a pre-established fanbase, music trends, etc. Because of this, it is not necessarily the case that having a song with lower acousticness or valence will automatically result in a more popular song. However, at least during 2023, songs with these qualities received the most streams, so it is possible that a similar song would also be well received.</p>
-<p>The implementation of the classification model provided insights into which artists were most popular in 2023, and how the artists that contribute to a song might affect the song’s popularity. For example, we were able to determine that artists like Metro Boomin, Bizarrap, and Eminem, have a higher likelihood of being in the top 10 than Future or Halsey. Again, there are a lot of factors that go into a song’s popularity so it is not guaranteed that these artists’ songs will have the best performance every time. However, this information could be used to devise collaborations between artists.</p>
+<p>The implementation of the classification model provided insights into which artists were most popular in 2023, and how the artists that contribute to a song might affect the song’s popularity. For example, we were able to determine that artists like Metro Boomin, Bizarrap, and Eminem, have a higher likelihood of being in the top 10 than Future or Halsey. Again, there are a lot of factors that go into a song’s popularity so it is not guaranteed that these artists’ songs will have the best performance every time. However, this information could be used to devise collaborations between artists and potentially result in a better performing song.</p>
 </section>
 <section id="references" class="level2">
 <h2 class="anchored" data-anchor-id="references">References</h2>

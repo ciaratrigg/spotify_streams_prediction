@@ -328,7 +328,7 @@ collect_metrics(final_svm) %>%
 ```
 Our model has an accuracy, sensitivity and specificity rates of approximately 67%, 45%, and 79%, respectively.
 
-Below is the corresponding confusion matrix, which demonstrates that our model does a better job of correctly predicting songs that will be in the top 10 than songs that will not be, but does a generally good job overall. 
+Below is the corresponding confusion matrix. The main diagonal of a confusion matrix represents correctly predicted samples. The visualization shows that, more often than not, our model is able to correctly classify songs as having been in the top 10. As shown by the left side of the matrix, our model has a more difficult time correctly classifying songs that lie outside of the top 10, but generally performs well overall.
 ```{r}
 collect_predictions(final_svm) %>%
   conf_mat(in_spotify_charts, .pred_class) %>%
