@@ -102,7 +102,7 @@ music_df %>%
   ggtitle("Suitability for Dancing vs. Amount of Acoustic Sound") +
   labs(x = "Amt of Acoustic Sound", y="Percentage of Dancing suitability")
 ```
-When acoustic sound is compared with dancing suitability, they show a slight inverse relationship, but nothing significant. This slight downward trend is expected though, since acoustic songs are usually less upbeat and therefore not as danceable.
+When acoustic sound is compared with dancing suitability, they show a slight inverse relationship. This slight downward trend is expected, since acoustic songs are usually less upbeat and therefore not as danceable.
 
 ```{r}
 music_df %>%
