@@ -1,0 +1,4 @@
+- source: final_report.qmd
+  quarto-pub:
+    - id: 40d21d3c-a8a3-4b8a-a15d-e5eb90a3fe04
+      url: 'https://ciaratrigg.quarto.pub/most-streamed-spotify-songs'

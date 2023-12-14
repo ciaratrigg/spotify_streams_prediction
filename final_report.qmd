@@ -121,13 +121,6 @@ music_df %>%
 ```
 This graph shows that more songs were written in the a Major mode than in a Minor mode. Additionally, the coloring shows a breakdown of which keys were used in the major and minor modes. These colored sectors are difficult to compare directly because Major mode has a larger number of data points, but visually it appears that the middle of the key scale was used more frequently in songs in minor mode. On the other hand, songs written in major mode use the upper and lower extremities of the key scale most frequently.
 
-```{r}
-music_df %>%
-  ggplot(aes(x = key, fill = mode)) +
-  geom_bar()
-```
-This graph conveys similar information to that found in the previous graph, but it is interesting to view the same data from a different perspective.
-
 ## Models
 ### Regression Models
 For this investigation, we will use both regression and classification modeling for different purposes. The various regression models will make predictions about the number of streams a song will receive based on the number of artists, the number of Spotify playlists it is in, the highest it has reached on Spotify's charts, the beats per minute, the key, the mode, the danceability, the valence, the energy, the acousticness, the liveness, and the speechiness. To accomplish this, we have used a wide variety of regression techniques namely a linear regression, a K nearest neighbors, a random forest, and a boosted tree. 
