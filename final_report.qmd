@@ -84,7 +84,7 @@ music_df %>%
   ggtitle("Suitability for Dancing vs. Beats per Minute") +
   labs(x = "BPM", y="Percentage of Dancing suitability") 
 ```
-When relating beats per minute and suitability for dancing, this plot shows that songs between 100-150 beats per minute have the highest danceability factor.
+The percentage of dancing suitability peaks for songs between 100-150 BPM. Outside of this range, especially after 150 BPM, the danceability drops off steeply going as low as ~25%. 
 
 ```{r}
 music_df %>%
@@ -93,7 +93,7 @@ music_df %>%
   ggtitle("Suitability for Dancing vs. Perceived energy level") +
   labs(x = "Perceived energy Level", y="Percentage of Dancing suitability")
 ```
-Further, songs that have a higher perceived energy level tend to be more danceable. This is an expected trend as higher energy songs tend to be the ones that people dance to most frequently.
+Songs that have a higher perceived energy level tend to be more danceable. This is an expected trend as higher energy songs tend to be the ones that people dance to most frequently.
 
 ```{r}
 music_df %>%
@@ -111,7 +111,7 @@ music_df %>%
   ggtitle("BPM vs. Energy") +
   labs(x = "Perceived Energy", y="BPM")
 ```
-This graph shows a slight direct relationship between beats per minute and perceived energy. However, I expected the correlation to be stronger.
+This graph shows a subtle direct correlation between beats per minute and perceived energy, however, I expected the relationship to be stronger. 
 
 
 ```{r}
